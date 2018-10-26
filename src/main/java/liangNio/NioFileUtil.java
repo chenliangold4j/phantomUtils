@@ -1,10 +1,18 @@
 package liangNio;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
+import java.nio.channels.Pipe;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+import java.util.Set;
 
 public class NioFileUtil
 {
@@ -108,6 +116,19 @@ public class NioFileUtil
    }
    
    
+   public void cpFile() throws IOException {
+      RandomAccessFile fromFile = new RandomAccessFile("fromFile.txt", "rw");
+      FileChannel      fromChannel = fromFile.getChannel();
+
+      RandomAccessFile toFile = new RandomAccessFile("toFile.txt", "rw");
+      FileChannel      toChannel = toFile.getChannel();
+      
+      long position = 0;
+      long count = fromChannel.size();
+
+      toChannel.transferFrom((ReadableByteChannel) fromFile, position, count);
+   }
+   
    
    public static void main(String[] args)
    {
@@ -122,8 +143,79 @@ public class NioFileUtil
       }
    }
    
+//   Selector一起使用时，Channel必须处于非阻塞模式下。这意味着不能将FileChannel与Selector一起使用，因为FileChannel不能切换到非阻塞模式。而套接字通道都可以。
+   public void  selectortest(SocketChannel channel) throws IOException {
+//      Selector的创建
+//      通过调用Selector.open()方法创建一个Selector，
+//      向Selector注册通道
+//      为了将Channel和Selector配合使用，必须将channel注册到selector上。通过SelectableChannel.register()方法来实现，如下：
+      
+//     interest集合是你所选择的感兴趣的事件集合。可以通过SelectionKey读写interest集合，像这样：
+//      int interestSet = selectionKey.interestOps();
+//      boolean isInterestedInAccept  = (interestSet & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT；
+//      boolean isInterestedInConnect = interestSet & SelectionKey.OP_CONNECT;
+//      boolean isInterestedInRead    = interestSet & SelectionKey.OP_READ;
+//      boolean isInterestedInWrite   = interestSet & SelectionKey.OP_WRITE;
+//      可以看到，用“位与”操作interest 集合和给定的SelectionKey常量，可以确定某个确定的事件是否在interest 集合中。
+//      register()方法会返回一个SelectionKey对象。这个对象包含了一些你感兴趣的属性：
+//      interest集合
+//      ready集合
+//      Channel
+//      Selector
+      Selector selector = Selector.open();
+      channel.configureBlocking(false);
+      SelectionKey keys = channel.register(selector, SelectionKey.OP_READ);
+      while(true) {
+        int readyChannels = selector.select();
+        if(readyChannels == 0) continue;
+        Set selectedKeys = selector.selectedKeys();
+        Iterator keyIterator = selectedKeys.iterator();
+        while(keyIterator.hasNext()) {
+          SelectionKey key = (SelectionKey) keyIterator.next();
+          if(key.isAcceptable()) {
+              // a connection was accepted by a ServerSocketChannel.
+          } else if (key.isConnectable()) {
+              // a connection was established with a remote server.
+          } else if (key.isReadable()) {
+              // a channel is ready for reading
+          } else if (key.isWritable()) {
+              // a channel is ready for writing
+          }
+          keyIterator.remove();
+        }
+      }
+      
+      
+    
+   }
    
-   
+   public void testPipe() throws IOException 
+   {
+      //    创建管道
+      //    通过Pipe.open()方法打开管道。例如：
+          Pipe pipe = Pipe.open();
+      //    向管道写数据
+      //    要向管道写数据，需要访问sink通道。像这样：
+          Pipe.SinkChannel sinkChannel = pipe.sink();
+      //     通过调用SinkChannel的write()方法，将数据写入SinkChannel,像这样：
+          String newData = "New String to write to file..." + System.currentTimeMillis();
+          ByteBuffer buf = ByteBuffer.allocate(48);
+          buf.clear();
+          buf.put(newData.getBytes());
+          buf.flip();
+          while(buf.hasRemaining()) {
+              sinkChannel.write(buf);
+          }
+      //    从管道读取数据
+      //    从读取管道的数据，需要访问source通道，像这样：
+      
+          Pipe.SourceChannel sourceChannel = pipe.source();
+      //    调用source通道的read()方法来读取数据，像这样：
+      
+          ByteBuffer buf1 = ByteBuffer.allocate(48);
+          int bytesRead = sourceChannel.read(buf1);
+      //    read()方法返回的int值会告诉我们多少字节被读进了缓冲区。
+ }
    
    
 
