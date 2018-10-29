@@ -184,9 +184,6 @@ public class NioFileUtil
           keyIterator.remove();
         }
       }
-      
-      
-    
    }
    
    public void testPipe() throws IOException 
