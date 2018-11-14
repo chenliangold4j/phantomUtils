@@ -55,6 +55,26 @@ public class ReflectUtil
       return result;
    }
    
+   @SuppressWarnings("null")
+   public static String getFieldStringFormObj(String filedName,Object obj) throws IllegalArgumentException, IllegalAccessException 
+   {
+      Class<?> clazz = obj.getClass();
+      Field[] fields = clazz.getDeclaredFields();
+      Field result = null;
+      for (Field field : fields)
+      {
+         if( field.getName().equals(filedName)) {
+            field.setAccessible(true);
+            System.out.println(field.get(obj).toString());
+            break;
+         }
+      }
+      return result.get(obj).toString();
+   }
+   
+   
+   
+   
    
    
    
@@ -65,7 +85,6 @@ public class ReflectUtil
      ReflectUtil reflectUtil = new ReflectUtil();
      Method method = getMethodFormClass("getFieldFormObj", ReflectUtil.class);
      Object result = method.invoke(reflectUtil, "test",reflectUtil);
-     
      
    }
 
