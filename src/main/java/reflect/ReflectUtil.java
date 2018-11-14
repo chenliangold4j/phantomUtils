@@ -1,10 +1,12 @@
 package reflect;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class ReflectUtil
 {
+   int test= 1111;
    
    public static Method getMethodFormClass(String methodName,Class<?> clazz) 
    {
@@ -37,13 +39,34 @@ public class ReflectUtil
       return result;
    }
    
+   public static Field getFieldFormObj(String filedName,Object obj) throws IllegalArgumentException, IllegalAccessException 
+   {
+      Class<?> clazz = obj.getClass();
+      Field[] fields = clazz.getDeclaredFields();
+      Field result = null;
+      for (Field field : fields)
+      {
+         if( field.getName().equals(filedName)) {
+            field.setAccessible(true);
+            System.out.println(field.get(obj).toString());
+            break;
+         }
+      }
+      return result;
+   }
+   
+   
+   
+   
    
    
    public static void main(String[] args) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException
    {
      ReflectUtil reflectUtil = new ReflectUtil();
-     Method method = getMethodFormClass("getMethodFormClass", ReflectUtil.class);
-     Object result = method.invoke(ReflectUtil.class, "equals",ReflectUtil.class);
+     Method method = getMethodFormClass("getFieldFormObj", ReflectUtil.class);
+     Object result = method.invoke(reflectUtil, "test",reflectUtil);
+     
+     
    }
 
 }
