@@ -74,12 +74,6 @@ public class ReflectUtil
    
    
    
-   
-   
-   
-   
-   
-   
    public static void main(String[] args) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException
    {
      ReflectUtil reflectUtil = new ReflectUtil();
