@@ -6,7 +6,13 @@ import java.lang.reflect.Method;
 
 public class ReflectUtil
 {
+   int i = 5;
+   Integer i1 = 6;
+   long l =231l;
+   Long l2 =21212l;
    String test = "ddddd";
+   
+   
 
    public static Method getMethodFormClass(String methodName, Class<?> clazz)
    {
@@ -66,6 +72,8 @@ public class ReflectUtil
       Field result = null;
       for (Field field : fields)
       {
+         System.out.println("filed type:"+field.getType());
+         System.out.println(field.getType() == int.class);
          if (field.getName().equals(filedName))
          {
             field.setAccessible(true);
@@ -76,27 +84,8 @@ public class ReflectUtil
       }
       return result.get(obj).toString();
    }
-
-   @SuppressWarnings("null")
-   public static void setFieldStringToObj(String filedName, Object obj, String value) throws IllegalArgumentException, IllegalAccessException
-   {
-      Class<?> clazz = obj.getClass();
-      Field[] fields = clazz.getDeclaredFields();
-      Field result = null;
-      for (Field field : fields)
-      {
-         if (field.getName().equals(filedName))
-         {
-            field.setAccessible(true);
-            if (field.get(obj) instanceof String)
-            {
-               field.set(obj, value);
-            }
-            System.out.println(field.get(obj).toString());
-            break;
-         }
-      }
-   }
+   
+   
 
    public static void main(String[] args) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException
    {
