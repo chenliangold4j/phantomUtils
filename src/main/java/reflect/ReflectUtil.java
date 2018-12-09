@@ -92,7 +92,6 @@ public class ReflectUtil
       ReflectUtil reflectUtil = new ReflectUtil();
       Method method = getMethodFormClass("setFieldStringToObj", ReflectUtil.class);
       Object result = method.invoke(reflectUtil, "test", reflectUtil, "odl");
-
    }
 
 }
