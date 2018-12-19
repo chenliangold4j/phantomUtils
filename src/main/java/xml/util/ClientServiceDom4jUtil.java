@@ -366,38 +366,3 @@ public class ClientServiceDom4jUtil
 }
 
 // -------------------------------------end class-----------------------------
-// 构造头的writer
-class StandaloneWriter extends XMLWriter
-{
-
-   public StandaloneWriter(StringWriter out, OutputFormat format)
-   {
-      super(out, format);
-   }
-   // ---------------------------------------------------------------------------
-
-   protected void writeDeclaration() throws IOException
-   {
-      OutputFormat format = getOutputFormat();
-      String encoding = format.getEncoding();
-      if (!format.isSuppressDeclaration())
-      {
-         writer.write("<?xml version=\"1.0\"");
-         if (encoding.equals("UTF8"))
-         {
-            if (!format.isOmitEncoding())
-               writer.write(" encoding=\"UTF-8\"");
-         }
-         else
-         {
-            if (!format.isOmitEncoding())
-               writer.write(" encoding=\"" + encoding + "\"");
-
-         } // --------End If--------
-         writer.write(" standalone=\"yes\"");
-         writer.write("?>");
-         if (format.isNewLineAfterDeclaration())
-            println();
-      } // --------End If--------
-   }
-}

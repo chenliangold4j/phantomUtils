@@ -1,12 +1,7 @@
-package reflect;
-
+package xml.util;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-
-
-
 
 public class ConverterUtil
 {
@@ -78,6 +73,7 @@ public class ConverterUtil
             result = dbValue;
          }
       }
+
       else if (Date.class.isAssignableFrom(clazz))
       {
          SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

@@ -1,175 +1,438 @@
 package xml.util;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.net.URL;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.stream.StreamSource;
-
-import org.dom4j.Attribute;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
-import org.dom4j.Node;
-import org.dom4j.io.DocumentResult;
-import org.dom4j.io.DocumentSource;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 
-public class Dom4jUtil 
+
+public class Dom4jUtil
 {
-	
-	public static  Document parse(File file)throws DocumentException
-	{
-		
-		SAXReader reader = new SAXReader();
-		Document document = reader.read(file);
-		return document;
-	}
-	
-	public static void bar(Document document) throws DocumentException{
-		Element root = document.getRootElement();
-		for (Iterator<Element> it = root.elementIterator(); it.hasNext();) {
-	        Element element = it.next();
-	        System.out.println(element.getName());
-	        System.out.println(element.getData());
-	        // do something
-	    }
-		
+
+   /**
+    * 通过xml获取document
+    * 
+    * @param xml
+    * @return
+    * @throws DocumentException
+    * @throws UnsupportedEncodingException
+    */
+   public static Document parse(String xml) throws DocumentException
+   {
+      SAXReader reader = new SAXReader();
+      StringReader stringReader = new StringReader(xml);
+      Document document = reader.read(stringReader);
+      return document;
+   }
+   // ---------------------------------------------------------------------------
+   public static Element getElementFromBean(String elementName, Object obj)
+   {
+      Element element = DocumentHelper.createElement(elementName);
+      Field[] fields = obj.getClass().getDeclaredFields();
+      for (Field field : fields)
+      {
+         try
+         {
+            field.setAccessible(true);
+            if (Date.class.isAssignableFrom(field.getType()) && field.get(obj) != null)
+            {
+               Date date = (Date) field.get(obj);
+               SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+               String valString = formatter.format(date);
+               String name = field.getName();
+               if (name != null && valString != null)
+                  element.addElement(name).setText(valString);
+            }
+            else
+            {
+               String name = field.getName();
+               String valString = field.get(obj) != null ? field.get(obj).toString() : null;
+               if (name != null && valString != null)
+                  element.addElement(name).setText(valString);
+            }
+         }
+         catch (IllegalArgumentException e)
+         {
+            e.printStackTrace();
+         }
+         catch (IllegalAccessException e)
+         {
+            e.printStackTrace();
+         }
+      }
+      return element;
+   }
+   // ---------------------------------------------------------------------------
 
 
-	    // iterate through child elements of root with element name "foo"
-	    for (Iterator<Element> it = root.elementIterator("to"); it.hasNext();) {
-	        Element foo = it.next();
-	        System.out.println(foo.getData());
-	        // do something
-	    }
+   @SuppressWarnings("unchecked")
+   public static <T> T ElementConvertToBean(Element root, Class<T> clazz)
+   {
+      T result = null;
+      try
+      {
+         result = clazz.newInstance();
+      }
+      catch (Exception e)
+      {
+         return result;
+      }
+      Field[] fields = clazz.getDeclaredFields();
+      Iterator<Element> eleIterator = root.elementIterator();
+      Element son = eleIterator.next();
+      for (Iterator<Element> it = son.elementIterator(); it.hasNext();)
+      {
+         Element element = it.next();
+         String name = element.getName();
+         for (Field field : fields)
+         {
+            if (field.getName().equals(name))
+            {
+               String value = element.getText();
+               if (isNotBlank(value))
+               {
+                  Object obj = ConverterUtil.converterToBaseType(value, field.getType());
+                  if (obj != null)
+                  {
+                     field.setAccessible(true);
+                     try
+                     {
+                        field.set(result, obj);
+                     }
+                     catch (IllegalArgumentException e)
+                     {
+                        e.printStackTrace();
+                     }
+                     catch (IllegalAccessException e)
+                     {
+                        e.printStackTrace();
+                     }
+                  }
+               }
+            }
+         }
+      }
+      return result;
+   }
+   // ---------------------------------------------------------------------------
 
-	    // iterate through attributes of root
-	    for (Iterator<Attribute> it = root.attributeIterator(); it.hasNext();) {
-	        Attribute attribute = it.next();
-	        System.out.println(attribute.getName());
-	        System.out.println(attribute.getData());
-	        // do something
-	    }
-	}
-	
-	
-	public static void XpathBar(Document document) throws DocumentException{
-//		第一种形式
-//    　　　　/AAA/DDD/BBB： 表示一层一层的，AAA下面 DDD下面的BBB
-//　  	第二种形式
-//   　　　　 //BBB： 表示和这个名称相同，表示只要名称是BBB，都得到
-//     	第三种形式
-//    　　　　/*: 所有元素
-//    	 第四种形式
-//   　　　　 BBB[1]：　表示第一个BBB元素
-//    　  　　BBB[last()]：表示最后一个BBB元素
-//    	 第五种形式
-//    　　　　//BBB[@id]： 表示只要BBB元素上面有id属性，都得到
-//     	第六种形式
-//    　　　　//BBB[@id='b1'] 表示元素名称是BBB,在BBB上面有id属性，并且id的属性值是b1
-		List<Node> list = document.selectNodes("//note");
-		Node node = document.selectSingleNode("//note/from");
-		System.out.println(node.getName());
-		System.out.println(list.get(0).valueOf("@id"));
-		
-	}
-	
-//	大文件
-	public static void treeWalk(Document document) {
-	    treeWalk(document.getRootElement());
-	}
+   /**
+    * 从xml中获取公共bean 返回的格式详见bean
+    *
+    * @param xml
+    * @return
+    * @throws UnsupportedEncodingException
+    * @throws DocumentException
+    */
+   public static XMLCommonBean getXmlBeanFromXml(String xml) throws DocumentException
+   {
+      XMLCommonBean xmlCommonBean = new XMLCommonBean();
+      Map<String, Object> map = null;
+      Document document = parse(xml);
+      Element root = document.getRootElement();
+      if (root != null)
+      {
+         xmlCommonBean.setRoot(root.getName());// 设置root节点
+         @SuppressWarnings("unchecked")
+         Iterator<Element> eleIterator = root.elementIterator();
+         Element son = eleIterator.next();
+         if (son != null)
+         {
+            xmlCommonBean.setMain(son.getName());// 设置main节点
+            map = getMapFromELement(son);
+            xmlCommonBean.setDataMap(map);// 设置datamap数据
+         } // --------End If--------
+      } // --------End If--------
+      return xmlCommonBean;
+   }
+   // ---------------------------------------------------------------------------
 
-	public static void treeWalk(Element element) {
-	    for (int i = 0, size = element.nodeCount(); i < size; i++) {
-	        Node node = element.node(i);
-	        if (node instanceof Element) {
-	            treeWalk((Element) node);
-	        }
-	        else {
-	            // do something…
-	        }
-	    }
-	}
-	
-	
-	public static Document createDocument() {
-        Document document = DocumentHelper.createDocument();
-        Element root = document.addElement("root");
+   public static XMLCommonBean getXmlBeanFromXml(Element element)
+   {
+      XMLCommonBean xmlCommonBean = new XMLCommonBean();
+      Map<String, Object> map = null;
+      Element root = element;
+      if (root != null)
+      {
+         xmlCommonBean.setRoot(root.getName());// 设置root节点
+         @SuppressWarnings("unchecked")
+         Iterator<Element> eleIterator = root.elementIterator();
+         Element son = eleIterator.next();
+         if (son != null)
+         {
+            xmlCommonBean.setMain(son.getName());// 设置main节点
+            map = getMapFromELement(son);
+            xmlCommonBean.setDataMap(map);// 设置datamap数据
+         } // --------End If--------
+      } // --------End If--------
+      return xmlCommonBean;
+   }
+   // ---------------------------------------------------------------------------
 
-        Element author1 = root.addElement("author")
-            .addAttribute("name", "James")
-            .addAttribute("location", "UK")
-            .addText("James Strachan");
 
-        Element author2 = root.addElement("author")
-            .addAttribute("name", "Bob")
-            .addAttribute("location", "US")
-            .addText("Bob McWhirter");
+   private  static boolean isNotBlank(String value){
+      if(value == null)return false;
+      value = value.trim();
+      if(value.length() > 0)return true;
+      else
+         return false;
+   }
+   // ---------------------------------------------------------------------------
 
-        return document;
-    }
-	
-	public static void write(Document document) throws IOException {
+   /**
+    * 当有多个子节点时，，返回子节点列表
+    * 
+    **/
+   public static List<Map<String, Object>> getListBeanFromElement(Element root)
+   {
+      List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+      if (root != null)
+      {
+         @SuppressWarnings("unchecked")
+         Iterator<Element> eleIterator = root.elementIterator();
+         while (eleIterator.hasNext())
+         {
+            Element son = eleIterator.next();
+            if (son != null)
+            {
+               Map<String, Object> map = getMapFromELement(son);
+               result.add(map);
+            } // --------End If--------
+         }
+      } // --------End If--------
+      return result;
+   }
+   // ---------------------------------------------------------------------------
 
-        // lets write to a file
-        FileWriter fileWiter = new FileWriter("D:/test/output.xml"); 
-        XMLWriter writer = new XMLWriter(fileWiter);
-        writer.write( document );
-        writer.close();
-       
+   public static Map<String, List<String>> getMapListFromElement(Element root)
+   {
+      Map<String, List<String>> result = new HashMap<String, List<String>>();
+      List<Map<String, Object>> list = getListBeanFromElement(root);
+      for (Map<String, Object> map : list)
+      {
+         for (String key : map.keySet())
+         {
+            if (result.containsKey(key) == false)
+            {
+               result.put(key, new ArrayList<String>());
+               result.get(key).add(map.get(key).toString());
+            }else {
+               result.get(key).add(map.get(key).toString());
+            }
+         }
+      }
+      return result;
+   }
+   // ---------------------------------------------------------------------------
+   
+   
 
-        // Pretty print the document to System.out
-        OutputFormat format = OutputFormat.createPrettyPrint();
-        writer = new XMLWriter(System.out, format);
-        writer.write( document );
+   /**
+    * 获取自节点的datamap
+    * 
+    * @param xml
+    * @return
+    * @throws UnsupportedEncodingException
+    * @throws DocumentException
+    */
+   public static Map<String, Object> getDataMapFromXml(String xml) throws UnsupportedEncodingException, DocumentException
+   {
+      Map<String, Object> result = null;
+      Document document = parse(xml);
+      Element root = document.getRootElement();
+      if (root != null)
+      {
+         @SuppressWarnings("unchecked")
+         Iterator<Element> eleIterator = root.elementIterator();
+         Element son = eleIterator.next();
+         if (son != null)
+         {
+            result = getMapFromELement(son);
+         } // --------End If--------
+      } // --------End If--------
+      return result;
+   }
+   // ---------------------------------------------------------------------------
 
-        // Compact format to System.out
-        format = OutputFormat.createCompactFormat();
-        writer = new XMLWriter(System.out, format);
-        writer.write(document);
-        writer.close();
-    }
-	
-	public Document styleDocument(Document document, String stylesheet) throws Exception {
 
-        // load the transformer using JAXP
-        TransformerFactory factory = TransformerFactory.newInstance();
-        Transformer transformer = factory.newTransformer(new StreamSource(stylesheet));
 
-        // now lets style the given document
-        DocumentSource source = new DocumentSource(document);
-        DocumentResult result = new DocumentResult();
-        transformer.transform(source, result);
 
-        // return the transformed document
-        Document transformedDoc = result.getDocument();
-        return transformedDoc;
-    }
-	
-	public static void main(String[] args) throws DocumentException, IOException {
-//		bar(parse(new File("D:/test/1.txt")));
-//		XpathBar(parse(new File("D:/test/1.txt")));
-		Document document = createDocument();
-//		FileWriter out = new FileWriter("D:/test/2.txt");
-//		document.write(out);
-//		out.close();
-//		write(document);
-		
-		String text = document.asXML();;
-		System.out.println(text);
-		String text2 = "<person> <name>James</name> </person>";
-		Document document2 = DocumentHelper.parseText(text);
-		
-	}
+   /**
+    * 从节点中获取 递归获取map 当有子节点时 value为map 否则为String
+    * 
+    * @param elements
+    * @return
+    */
+   @SuppressWarnings("unchecked")
+   private static Map<String, Object> getMapFromELement(Element elements)
+   {
+      Map<String, Object> map = new HashMap<String, Object>();
+      for (Iterator<Element> it = elements.elementIterator(); it.hasNext();)
+      {
+         Element element = it.next();
+         if (element.hasMixedContent())
+         {
+            String key = element.getName();
+            Map<String, Object> sonMap = getMapFromELement(element);
+            map.put(key, sonMap);
+         }
+         else
+         {
+            String key = element.getName();
+            String value = element.getText();
+            map.put(key, value);
+         } // --------End If--------
+      } // --------End For--------
+      return map;
+   }
+   // ---------------------------------------------------------------------------
 
-	
+   /**
+    * 创建只有一个子节点的Element
+    * 
+    * @param root
+    * @param main
+    * @param key
+    * @param value
+    * @return
+    */
+   public static Element createResponseXmlSingleElement(String root, String main, String key, String value)
+   {
+      Element rootEle = DocumentHelper.createElement(root);
+      Element mainEle = rootEle.addElement(main);
+      mainEle.addElement(key).setText(value);
+      return rootEle;
+   }
+   // ---------------------------------------------------------------------------
+
+   public static Element createResponseXmlSingleElement(String root, String main, String key, int i)
+   {
+      return createResponseXmlSingleElement(root, main, key, String.valueOf(i));
+   }
+
+   // ---------------------------------------------------------------------------
+   public static Element createResponseXmlSingleElement(String root, String main, String key, Long i)
+   {
+      return createResponseXmlSingleElement(root, main, key, String.valueOf(i));
+   }
+   // ---------------------------------------------------------------------------
+
+   /**
+    * 主节点下只有单层的xml
+    * 
+    * @param root
+    * @param main
+    * @param data
+    * @return
+    */
+   public static Element createResponseXmlMonolayer(String root, String main, Map<String, String> data)
+   {
+      Element rootEle = DocumentHelper.createElement(root);
+      Element mainEle = rootEle.addElement(main);
+      for (String key : data.keySet())
+      {
+         mainEle.addElement(key).setText(data.get(key));
+      }
+      return rootEle;
+   }
+   // ---------------------------------------------------------------------------
+
+   /**
+    * 新增一个子节点
+    */
+   public static Element addSonElement(Element rootELe, String key, String value)
+   {
+      @SuppressWarnings("unchecked")
+      Iterator<Element> eleIterator = rootELe.elementIterator();
+      Element son = eleIterator.next();
+      son.addElement(key).setText(value);
+      return rootELe;
+   }
+   // ---------------------------------------------------------------------------
+
+   /**
+    * 把document转xml
+    * 
+    * @param document
+    * @return
+    */
+   public static String asXML(org.dom4j.Node document)
+   {
+      if (document == null)
+         return null;
+
+      OutputFormat format = new OutputFormat();
+      format.setEncoding("UTF-8");
+      try
+      {
+         StringWriter out = new StringWriter();
+         StandaloneWriter writer = new StandaloneWriter(out, format);
+         if (document instanceof Document == false)
+            writer.startDocument();
+         writer.write(document);
+         if (document instanceof Document == false)
+            writer.endDocument();
+         writer.flush();
+         return out.toString();
+      }
+      catch (Exception e)
+      {
+         throw new RuntimeException("IOException while generating textual " + "representation: " + e.getMessage());
+      } // --------End Try--------
+   }
+   // ---------------------------------------------------------------------------
+
+}
+
+// -------------------------------------end class-----------------------------
+// 构造头的writer
+class StandaloneWriter extends XMLWriter
+{
+
+   public StandaloneWriter(StringWriter out, OutputFormat format)
+   {
+      super(out, format);
+   }
+   // ---------------------------------------------------------------------------
+
+   protected void writeDeclaration() throws IOException
+   {
+      OutputFormat format = getOutputFormat();
+      String encoding = format.getEncoding();
+      if (!format.isSuppressDeclaration())
+      {
+         writer.write("<?xml version=\"1.0\"");
+         if (encoding.equals("UTF8"))
+         {
+            if (!format.isOmitEncoding())
+               writer.write(" encoding=\"UTF-8\"");
+         }
+         else
+         {
+            if (!format.isOmitEncoding())
+               writer.write(" encoding=\"" + encoding + "\"");
+
+         } // --------End If--------
+         writer.write(" standalone=\"yes\"");
+         writer.write("?>");
+         if (format.isNewLineAfterDeclaration())
+            println();
+      } // --------End If--------
+   }
 }
