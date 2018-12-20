@@ -131,6 +131,94 @@ public class Dom4jUtil
       return result;
    }
    // ---------------------------------------------------------------------------
+   
+
+   @SuppressWarnings("unchecked")
+   public static <T> T ElementConvertToBeanDeep(Element main, Class<T> clazz)
+   {
+      T result = null;
+      try
+      {
+         result = clazz.newInstance();
+      }
+      catch (Exception e)
+      {
+         return result;
+      }
+      Field[] fields = clazz.getDeclaredFields();
+      Element son = main;
+      for (Iterator<Element> it = son.elementIterator(); it.hasNext(); )
+      {
+         Element element = it.next();
+
+         if (element.hasMixedContent())
+         {
+            String name = element.getName();
+            for (Field field : fields)
+            {
+               String fiedlName = AnnotationUtil.getXmlAnnotationValue(field, XmlName.class);
+               if (fiedlName == null)
+               {
+                  fiedlName = field.getName();
+               }
+               if (fiedlName.equals(name))
+               {
+                  Object bean = ElementConvertToBean(element, field.getType());
+                  if (bean != null)
+                  {
+                     field.setAccessible(true);
+                     try
+                     {
+                        field.set(result, bean);
+                     }
+                     catch (IllegalAccessException e)
+                     {
+                        e.printStackTrace();
+                     }
+                  }
+               }
+            }
+         }
+         else
+         {
+            String name = element.getName();
+            for (Field field : fields)
+            {
+               String fiedlName = AnnotationUtil.getXmlAnnotationValue(field, XmlName.class);
+               if (fiedlName == null)
+               {
+                  fiedlName = field.getName();
+               }
+               if (fiedlName.equals(name))
+               {
+                  String value = element.getText();
+                  if (isNotBlank(value))
+                  {
+                     Object obj = ConverterUtil.converterToBaseType(value, field.getType());
+                     if (obj != null)
+                     {
+                        field.setAccessible(true);
+                        try
+                        {
+                           field.set(result, obj);
+                        }
+                        catch (IllegalArgumentException e)
+                        {
+                           e.printStackTrace();
+                        }
+                        catch (IllegalAccessException e)
+                        {
+                           e.printStackTrace();
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+      return result;
+   }
+   // ---------------------------------------------------------------------------
 
    /**
     * 从xml中获取公共bean 返回的格式详见bean
