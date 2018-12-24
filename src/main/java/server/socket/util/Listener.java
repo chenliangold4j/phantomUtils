@@ -16,14 +16,15 @@ public class Listener
       while (true)
       {
          Socket socket = server.accept();
+         System.out.println("接收到连接");
          new ServerThread(socket).start();
       }
 
    }
 
    public static void main(String[] args) throws IOException
-   {
-      listenPort(7777);
+   {        
+      listenPort(8080);
    }
 }
 
@@ -39,21 +40,24 @@ class ServerThread extends Thread
    @Override
    public void run()
    {
+      System.out.println("run ");
       try
       {
          BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
          String str = reader.readLine();
          while (str != null)
-         {
+         { 
             System.out.println(str);
             str = reader.readLine();
          }
          reader.close();
+         socket.close();
 
       }
       catch (UnsupportedEncodingException e)
       {
          e.printStackTrace();
+         
       }
       catch (IOException e)
       {
