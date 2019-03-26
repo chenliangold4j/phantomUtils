@@ -34,11 +34,20 @@ public class Dom4jUtil
     * @throws DocumentException
     * @throws UnsupportedEncodingException
     */
-   public static Document parse(String xml) throws DocumentException
+   public static Document parse(String xml)
    {
       SAXReader reader = new SAXReader();
       StringReader stringReader = new StringReader(xml);
-      Document document = reader.read(stringReader);
+      Document document = null;
+      try
+      {
+         document = reader.read(stringReader);
+      }
+      catch (DocumentException e)
+      {
+         // TODO Auto-generated catch block
+         e.printStackTrace();
+      }
       return document;
    }
 
@@ -543,7 +552,7 @@ public class Dom4jUtil
    }
    // ---------------------------------------------------------------------------
    
-   public static void main(String[] args) throws DocumentException
+   public static void main(String[] args)
    {
       String xml = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>\r\n" + 
                "<DeviceManager>  \r\n" + 
