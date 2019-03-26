@@ -1,5 +1,6 @@
 package xml.util;
 
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -27,7 +28,7 @@ public class Dom4jUtil
 
    /**
     * 通过xml获取document
-    * 
+    *
     * @param xml
     * @return
     * @throws DocumentException
@@ -40,6 +41,7 @@ public class Dom4jUtil
       Document document = reader.read(stringReader);
       return document;
    }
+
    // ---------------------------------------------------------------------------
    public static Element getElementFromBean(String elementName, Object obj)
    {
@@ -80,61 +82,50 @@ public class Dom4jUtil
    }
    // ---------------------------------------------------------------------------
 
-
-   @SuppressWarnings("unchecked")
-   public static <T> T ElementConvertToBean(Element root, Class<T> clazz)
+   public static Element getElementFromBean(String root,String elementName, Object obj)
    {
-      T result = null;
-      try
+      Element result = DocumentHelper.createElement(elementName);
+      Element element = DocumentHelper.createElement(elementName);
+      Field[] fields = obj.getClass().getDeclaredFields();
+      for (Field field : fields)
       {
-         result = clazz.newInstance();
-      }
-      catch (Exception e)
-      {
-         return result;
-      }
-      Field[] fields = clazz.getDeclaredFields();
-      Iterator<Element> eleIterator = root.elementIterator();
-      Element son = eleIterator.next();
-      for (Iterator<Element> it = son.elementIterator(); it.hasNext();)
-      {
-         Element element = it.next();
-         String name = element.getName();
-         for (Field field : fields)
+         try
          {
-            if (field.getName().equals(name))
+            field.setAccessible(true);
+            if (Date.class.isAssignableFrom(field.getType()) && field.get(obj) != null)
             {
-               String value = element.getText();
-               if (isNotBlank(value))
-               {
-                  Object obj = ConverterUtil.converterToBaseType(value, field.getType());
-                  if (obj != null)
-                  {
-                     field.setAccessible(true);
-                     try
-                     {
-                        field.set(result, obj);
-                     }
-                     catch (IllegalArgumentException e)
-                     {
-                        e.printStackTrace();
-                     }
-                     catch (IllegalAccessException e)
-                     {
-                        e.printStackTrace();
-                     }
-                  }
-               }
+               Date date = (Date) field.get(obj);
+               SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+               String valString = formatter.format(date);
+               String name = field.getName();
+               if (name != null && valString != null)
+                  element.addElement(name).setText(valString);
+            }
+            else
+            {
+               String name = field.getName();
+               String valString = field.get(obj) != null ? field.get(obj).toString() : null;
+               if (name != null && valString != null)
+                  element.addElement(name).setText(valString);
             }
          }
+         catch (IllegalArgumentException e)
+         {
+            e.printStackTrace();
+         }
+         catch (IllegalAccessException e)
+         {
+            e.printStackTrace();
+         }
       }
+      result.add(element);
       return result;
    }
    // ---------------------------------------------------------------------------
-   
+
 
    @SuppressWarnings("unchecked")
-   public static <T> T ElementConvertToBeanDeep(Element main, Class<T> clazz)
+   public static <T> T ElementConvertToBean(Element main, Class<T> clazz)
    {
       T result = null;
       try
@@ -220,6 +211,13 @@ public class Dom4jUtil
    }
    // ---------------------------------------------------------------------------
 
+   public static  <T> T getBeanFromElement(Element root, Class<T> clazz){
+      Iterator<Element> eleIterator = root.elementIterator();
+      Element son = eleIterator.next();
+      T result = ElementConvertToBean(son,clazz);
+      return  result;
+   }
+
    /**
     * 从xml中获取公共bean 返回的格式详见bean
     *
@@ -274,10 +272,11 @@ public class Dom4jUtil
    // ---------------------------------------------------------------------------
 
 
-   private  static boolean isNotBlank(String value){
-      if(value == null)return false;
+   private static boolean isNotBlank(String value)
+   {
+      if (value == null) return false;
       value = value.trim();
-      if(value.length() > 0)return true;
+      if (value.length() > 0) return true;
       else
          return false;
    }
@@ -285,7 +284,6 @@ public class Dom4jUtil
 
    /**
     * 当有多个子节点时，，返回子节点列表
-    * 
     **/
    public static List<Map<String, Object>> getListBeanFromElement(Element root)
    {
@@ -308,6 +306,30 @@ public class Dom4jUtil
    }
    // ---------------------------------------------------------------------------
 
+   /**
+    * 当有多个子节点时，，返回子节点列表
+    **/
+   public static<T> List<T> getListBeanFromElement(Element root,Class<T> clazz)
+   {
+      List<T> result = new ArrayList<T>();
+      if (root != null)
+      {
+         @SuppressWarnings("unchecked")
+         Iterator<Element> eleIterator = root.elementIterator();
+         while (eleIterator.hasNext())
+         {
+            Element son = eleIterator.next();
+            if (son != null)
+            {
+               T bean = ElementConvertToBean(son,clazz);
+               result.add(bean);
+            } // --------End If--------
+         }
+      } // --------End If--------
+      return result;
+   }
+   // ---------------------------------------------------------------------------
+
    public static Map<String, List<String>> getMapListFromElement(Element root)
    {
       Map<String, List<String>> result = new HashMap<String, List<String>>();
@@ -320,7 +342,9 @@ public class Dom4jUtil
             {
                result.put(key, new ArrayList<String>());
                result.get(key).add(map.get(key).toString());
-            }else {
+            }
+            else
+            {
                result.get(key).add(map.get(key).toString());
             }
          }
@@ -328,12 +352,11 @@ public class Dom4jUtil
       return result;
    }
    // ---------------------------------------------------------------------------
-   
-   
+
 
    /**
     * 获取自节点的datamap
-    * 
+    *
     * @param xml
     * @return
     * @throws UnsupportedEncodingException
@@ -359,11 +382,30 @@ public class Dom4jUtil
    // ---------------------------------------------------------------------------
 
 
+   public static Element getElementFromMap(String root,String main,Map<String,Object> map)
+   {
+      Element result = DocumentHelper.createElement(root);
+      result.add(mapConvertToElement(main,map));
+      return result;
+   }
+   // ---------------------------------------------------------------------------
+
+   public static Element mapConvertToElement(String elementName,Map<String,Object> map) {
+      Element result = DocumentHelper.createElement(elementName);
+      for(String key:map.keySet()){
+         if(map.get(key) instanceof  Map){
+            result.add(mapConvertToElement(key,(Map<String,Object>)map.get(key)));
+         }else {
+            result.addElement(key).setText(map.get(key).toString());
+         }
+      }
+      return result;
+   }
 
 
    /**
     * 从节点中获取 递归获取map 当有子节点时 value为map 否则为String
-    * 
+    *
     * @param elements
     * @return
     */
@@ -371,7 +413,7 @@ public class Dom4jUtil
    private static Map<String, Object> getMapFromELement(Element elements)
    {
       Map<String, Object> map = new HashMap<String, Object>();
-      for (Iterator<Element> it = elements.elementIterator(); it.hasNext();)
+      for (Iterator<Element> it = elements.elementIterator(); it.hasNext(); )
       {
          Element element = it.next();
          if (element.hasMixedContent())
@@ -393,7 +435,7 @@ public class Dom4jUtil
 
    /**
     * 创建只有一个子节点的Element
-    * 
+    *
     * @param root
     * @param main
     * @param key
@@ -423,7 +465,7 @@ public class Dom4jUtil
 
    /**
     * 主节点下只有单层的xml
-    * 
+    *
     * @param root
     * @param main
     * @param data
@@ -454,9 +496,24 @@ public class Dom4jUtil
    }
    // ---------------------------------------------------------------------------
 
+   /*查找孙子节点*/
+
+   public static String findGrandsonELement(Element root,String grandsonName){
+      String result = null;
+      Iterator<Element> eleIterator = root.elementIterator();
+      Element son = eleIterator.next();
+      for(Iterator<Element> iterator = son.elementIterator();iterator.hasNext();){
+         Element element = iterator.next();
+         if(element.getName().equals(grandsonName)){
+            result = element.getText();
+         }
+      }
+      return result;
+   }
+
    /**
     * 把document转xml
-    * 
+    *
     * @param document
     * @return
     */
@@ -485,6 +542,27 @@ public class Dom4jUtil
       } // --------End Try--------
    }
    // ---------------------------------------------------------------------------
+   
+   public static void main(String[] args) throws DocumentException
+   {
+      String xml = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>\r\n" + 
+               "<DeviceManager>  \r\n" + 
+               "<Add>\r\n" + 
+               "<login_id>1070000035917</login_id>     \r\n" + 
+               "<name>test</name>    \r\n" + 
+               "<remark>详细信息</remark>   \r\n" + 
+               "<deviceNumber>XVJ5-MUBK-UHS5-Y</deviceNumber>    \r\n" + 
+               "<device_type_id>3</device_type_id>    \r\n" + 
+               "<address >2222</address>      \r\n" + 
+               "<ip>192.168.0.54</ip>    \r\n" + 
+               "<port>7777</port>    \r\n" + 
+               "<status>1</status>    \r\n" + 
+               "<modify_time>2018-11-30 11:16:29</modify_time>    \r\n" + 
+               "<valid_type>4</valid_type> \r\n" + 
+               "</Add>\r\n" + 
+               "</DeviceManager>";
+      Document document = parse(xml);
+   }
 
 }
 

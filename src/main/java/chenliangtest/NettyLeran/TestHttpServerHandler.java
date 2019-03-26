@@ -25,9 +25,6 @@ public class TestHttpServerHandler extends SimpleChannelInboundHandler<HttpObjec
 			response.headers().set(HttpHeaderNames.CONTENT_LENGTH,content.readableBytes());
 			ctx.writeAndFlush(response);
 		}
-		
 	}
 	
-	
-
 }

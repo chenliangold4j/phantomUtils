@@ -77,6 +77,7 @@ public class ReflectUtil
          if (field.getName().equals(filedName))
          {
             field.setAccessible(true);
+            
             System.out.println(field.get(obj).toString());
             result = field;
             break;
