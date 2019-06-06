@@ -37,9 +37,6 @@ class Transfer implements Runnable{
    }
 }
 
-
-
-
 class Bank {
    ThreadLocal<Integer> threadLocal = new ThreadLocal<Integer>() {
 
