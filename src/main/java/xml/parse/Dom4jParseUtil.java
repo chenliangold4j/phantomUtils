@@ -34,9 +34,7 @@ public class Dom4jParseUtil
             System.out.println(attr.getName()+";"+attr.getData());
          }
          // do something
+         
      }
-    
-      
    }
-   
 }
