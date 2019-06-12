@@ -9,7 +9,7 @@ import java.net.Socket;
 
 public class Listener
 {
-
+   
    public static void listenPort(int port) throws IOException
    {
       ServerSocket server = new ServerSocket(port);
@@ -19,12 +19,11 @@ public class Listener
          System.out.println("接收到连接");
          new ServerThread(socket).start();
       }
-
    }
 
    public static void main(String[] args) throws IOException
    {        
-      listenPort(8080);
+      listenPort(7788);
    }
 }
 
