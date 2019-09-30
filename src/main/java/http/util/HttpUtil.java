@@ -1,8 +1,6 @@
 package http.util;
 
 import java.io.IOException;
-import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.charset.UnsupportedCharsetException;
 
 import org.apache.http.HttpEntity;
@@ -17,24 +15,24 @@ import org.apache.http.util.EntityUtils;
 
 public class HttpUtil
 {
-   public static String postToServer(String url, String json)
+   public static String postToServer(String url, String str)
    {
       CloseableHttpClient httpclient = HttpClients.createDefault();
       String responseBody = null;
+      
       try
       {
          HttpPost httpget = new HttpPost(url);
-         if (json != null)
+         if (str != null)
          {
-            StringEntity stringEntity = new StringEntity(json, "UTF-8");
-            stringEntity.setContentType("application/json");
+            StringEntity stringEntity = new StringEntity(str, "UTF-8");
+            stringEntity.setContentType("application/x-www-form-urlencoded");
             httpget.setEntity(stringEntity);
          }
-//         System.out.println("Executing request " + httpget.getRequestLine());
+         // System.out.println("Executing request " + httpget.getRequestLine());
          // Create a custom response handler
          ResponseHandler<String> responseHandler = new ResponseHandler<String>()
          {
-
             public String handleResponse(final HttpResponse response) throws ClientProtocolException, IOException
             {
                int status = response.getStatusLine().getStatusCode();
@@ -80,4 +78,8 @@ public class HttpUtil
    }
  //---------------------------------------------------------------------------
    
+   public static void main(String[] args)
+   {
+      System.out.println(postToServer("http://192.168.0.109:9980/loginms","loginid=admin&secret=admin"));
+   }
 }
